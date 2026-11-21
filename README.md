@@ -17,12 +17,13 @@ Each item says which port it came from, what was measured and where (console or 
 | [docs/02-reproducible-build.md](docs/02-reproducible-build.md) | Docker pinned by digest, clean builds, memory, line endings |
 | [docs/03-generated-code.md](docs/03-generated-code.md) | Changes to the generated C: memory base, registers, `-Os`, `-O3`, addressing, what gave no gain |
 | [docs/04-pgo-on-switch.md](docs/04-pgo-on-switch.md) | PGO in a homebrew: counters streamed to the SD card, merging on the PC, pitfalls |
-| [docs/05-emulator-testing.md](docs/05-emulator-testing.md) | Headless Ryubing, scripted pad, per-level tests, per-level saves, same-game check |
+| [docs/05-emulator-testing.md](docs/05-emulator-testing.md) | Headless Ryubing, scripted pad, per-level tests, per-level saves, same-game check, locating a crash from the Ryujinx log |
 | [docs/06-console-testing.md](docs/06-console-testing.md) | A/B kit, per-build logs, comparing only scenes of similar load, measured noise |
-| [docs/07-gpu-video-and-cores.md](docs/07-gpu-video-and-cores.md) | Handheld clock, fourth core, shader caches, ZCULL, video through FFmpeg, frame readback in Ryubing |
+| [docs/07-gpu-video-and-cores.md](docs/07-gpu-video-and-cores.md) | Handheld clock, fourth core, shader and translation caches, ZCULL, video through FFmpeg, movie tearing, resolve hand-over |
 | [docs/08-porting-another-game.md](docs/08-porting-another-game.md) | What carries over to another game, finding functions by signature, milestones |
 | [docs/09-pitfalls.md](docs/09-pitfalls.md) | Things that cost time |
 | [docs/10-licences.md](docs/10-licences.md) | What never goes in here, licences |
+| [docs/11-runtime-memory-and-threads.md](docs/11-runtime-memory-and-threads.md) | Guest memory map, reservations against commits, the console's mapping limit, the cooperative scheduler |
 
 ## Tools
 

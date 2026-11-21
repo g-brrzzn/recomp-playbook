@@ -69,7 +69,24 @@ It also compares the **work per level** (draws, vertices, shader bytes) with a b
 Other LEGO details:
 - **Boot failures:** the emulator sometimes exits or hangs before the first level (5 of ~30 runs, with any build). Such a run is retried up to N times.
 - **First session (`--cold`):** moves the shader caches off the emulated card for the run and puts them back after. Good for first-time stutters, not for comparing work (two cold runs of the same build differed by up to 24 %).
-- **Hangs:** with the game stalled, a GDB dump shows each thread's stack.
+- **Hangs:** with the game stalled, a GDB dump shows each thread's stack. LEGO's runner takes it by itself when the frame log stops for N seconds (`--gdb-on-stall`); attaching GDB and continuing froze the run, so dump and stop.
+
+## Locating a crash from the Ryujinx log (LEGO)
+
+Read this first, before trying a fix. In LEGO, hours went into fixes built on guesses for a crash whose location was sitting in the log; once read, the next three crashes were each located within a run or two. When the guest touches unmapped memory, the Ryujinx log has, just above the `InvalidAccessHandler: Invalid memory access at virtual address ...` line:
+- `PrintGuestStackTrace`: the host call stack as offsets into the NRO (`lswtcs:0x26db50c`);
+- `PrintGuestRegisterPrintout`: X0-X28, FP, LR, SP and PC.
+
+How to read it:
+- The offsets are addresses in the ELF the NRO was made from: `aarch64-none-elf-addr2line -f -C -i -e game.elf 0x26db50c ...` gives the generated function and line of each frame. Keep the ELF of every build you test.
+- The PC is the start of the translated block (the whole function, for the JIT), not the faulting instruction. The LR and the frames say where you are.
+- With XenonRecomp's `PPC_FUNC(ctx, base)`: X0 is the guest context, X1 the guest memory base. The faulting address minus the base is the guest address (Ryujinx reports it page-aligned).
+- Match the other registers to guest values you know: in LEGO, X9 = 0xE1000 (one 1280×720 Y plane), X6 = the movie's texture and X10 = the D3D device placed the crash in a texture unlock, after a call whose return address was in X2.
+- `HLE.GuestThread.N` in the log is the kernel thread id. Log each host thread's id once at creation (`svcGetThreadId`) to know which guest thread crashed.
+
+Then confirm with a probe at the place itself: an override of the function (reached only from callers in other generated files, see guide 07) that checks its inputs and prints them when they are bad. In LEGO that showed the main thread's PCR page full of 0x11 bytes (guide 11). A host thread polling memory from outside missed it: the bad value lived for microseconds.
+
+Count the outcome you care about, not a proxy: "players created" looked fine while every new player was failing at once; "full plays" (the decoder reaching the last frame) told the truth.
 
 ## Images: Ryubing cuts every readback to 1/4 (Manhunt and LEGO)
 

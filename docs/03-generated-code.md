@@ -58,6 +58,19 @@ XenonRecomp leaves some VMX operations empty: just a `// op` comment followed di
 
 With any recompiler: look for operations the generator emits empty or as comments before debugging behaviour.
 
+## Guard patches with fixed address ranges are a trap (LEGO)
+
+Early in the port, the game's heap code got hand-written guards in the generated files: skip a free-list unlink, or a call, when a pointer is outside 0x80000000 (or 0x82000000) to 0x94000000, "garbage from a dump". They encode the runtime's memory map of the day. When the map changed (log134):
+- a heap segment placed at 0x816xxxxx (the 0x80 view of a physical block) passed the game's own logic but failed the guard, so the heap silently skipped unlinks; its lists broke, and a later allocation followed a bad link. The crash was far from the cause;
+- the same assumption sat in 70 guards over 6 generated files and in 75 checks in the runtime.
+
+What helped:
+- one header with the ranges as helpers (`lsw_gptr80(a)`, `lsw_gptr82(a)`, `lsw_vext_ptr(a)`) and a script that rewrites the checks to them, only where the same expression sits on both sides (`X < 0x80000000u || X >= 0x94000000u` → `!lsw_gptr80(X)`), idempotent, adding the include after the file's first `#include` (a later one may sit inside an `#ifdef`);
+- running it on both copies of the generated code (LEGO keeps the recompiler's output and a non-volatile copy, neither in Git) and after every regeneration;
+- leaving checks with only an upper bound alone (they already accept lower addresses), and reviewing the remaining shapes by hand (kernel-object checks up to 0xC0000000 or 0xE0000000).
+
+Better still: make a guard log when it fires. A silent skip hid this bug for a long time.
+
 ## `-Os` for the generated code (Manhunt)
 
 - Code: 22.56 → 19.64 MB (−24 % against the original build).

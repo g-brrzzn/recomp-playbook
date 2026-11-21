@@ -25,3 +25,10 @@ Things that cost time. Each has a short fix.
 | Holding a button at boot to switch modes does not work (LEGO) | The tester launches from sphaira, not the home menu | A second NRO with the option on |
 | Multi-line text breaks in a shell command | Wrongly escaped `\n` in a heredoc | Write the script to a file, or `NL = chr(10)` in Python |
 | `git cherry-pick -q` fails | The option does not exist | Drop `-q` |
+| A crash in the emulator, and fixes built on guesses do nothing (LEGO) | The location was in the Ryujinx log all along | Read `PrintGuestStackTrace` and the registers, `addr2line` on the ELF (guide 05) |
+| Run-time memory mapping fails on the console with rc 0xCE01 after a few mappings (LEGO) | The kernel limits extra mappings; the emulator runs never reached that many | Map at boot, or one large range (guide 11) |
+| A crash far from its cause after the memory map changed (LEGO) | Guard patches in the generated code with fixed address ranges | One header for the ranges, a script for the guards (guide 03) |
+| A replay or a reused buffer reads old data (LEGO) | `NtFreeVirtualMemory` did nothing; the game expects decommitted pages to come back zeroed | Zero decommitted and released ranges (guide 11) |
+| A thread holds the turn forever after another exits (LEGO) | A resume put an exited thread back in the scheduler | Mark gone threads and refuse them; a watchdog (guide 11) |
+| A strong override is never called (LEGO) | Callers in the same generated file use a local alias | Hook a function whose callers are in other files (guide 07) |
+| A fix looks twice as fast in the emulator and is slower on the console (LEGO) | Emulator timing differs, e.g. the movie fence wait | Speed claims from the console only (guide 07) |

@@ -65,7 +65,7 @@ Early in the port, the game's heap code got hand-written guards in the generated
 - the same assumption sat in 70 guards over 6 generated files and in 75 checks in the runtime.
 
 What helped:
-- one header with the ranges as helpers (`lsw_gptr80(a)`, `lsw_gptr82(a)`, `lsw_vext_ptr(a)`) and a script that rewrites the checks to them, only where the same expression sits on both sides (`X < 0x80000000u || X >= 0x94000000u` → `!lsw_gptr80(X)`), idempotent, adding the include after the file's first `#include` (a later one may sit inside an `#ifdef`);
+- one header with the ranges as helpers (`lsw_gptr80(a)`, `lsw_gptr82(a)`, `lsw_vext_ptr(a)`) and a script that rewrites the checks to them, only where the same expression sits on both sides (`X < 0x80000000u || X >= 0x94000000u` → `!lsw_gptr80(X)`), idempotent, adding the include after the file's first `#include` (a later one may sit inside an `#ifdef`) (`tools/widen_ptr_checks.py`);
 - running it on both copies of the generated code (LEGO keeps the recompiler's output and a non-volatile copy, neither in Git) and after every regeneration;
 - leaving checks with only an upper bound alone (they already accept lower addresses), and reviewing the remaining shapes by hand (kernel-object checks up to 0xC0000000 or 0xE0000000).
 

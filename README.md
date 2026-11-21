@@ -37,12 +37,17 @@ Generic versions, with no game name inside. Each one explains its usage at the t
 | [tools/pgo_stream.c](tools/pgo_stream.c) | Streams PGO counters to the SD card while the game runs | Manhunt and LEGO |
 | [tools/pgo_merge.py](tools/pgo_merge.py) | Turns those streams into `.gcda` files and fixes each object's summary | Manhunt and LEGO |
 | [tools/gl_readback_wide.c](tools/gl_readback_wide.c) | Reads a whole frame in Ryubing, which cuts every readback to 1/4 of the width | Manhunt |
+| [tools/replay_check.py](tools/replay_check.py) | "Same game?" check of a scripted run (frames between state changes) and work per level against a baseline, with boot retries | LEGO |
+| [tools/stage_console.py](tools/stage_console.py) | Stages a console test: label check, kept ELF, SD tree, hash manifest, test request | LEGO |
+| [tools/widen_ptr_checks.py](tools/widen_ptr_checks.py) | Rewrites hard-coded guest pointer range checks into one helper, idempotent | LEGO |
+| [tools/sched_watchdog.cpp](tools/sched_watchdog.cpp) | Cooperative scheduler: refuses exited threads, and a watchdog that reports and breaks a stalled turn | LEGO |
 
-The example configs in `examples/` are Manhunt's. Tests are in `tests/`:
+The example configs in `examples/` are Manhunt's, except `replay_check.json` (LEGO's log lines). Tests are in `tests/`:
 
 ```
 python -I tests/test_post_lift.py
 python -I tests/test_pgo_merge.py
+python -I tests/test_replay_and_staging.py
 ```
 
 ## Licence

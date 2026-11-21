@@ -43,7 +43,7 @@ Mapping heap memory into the guest window (`svcCreateCodeMemory` + `svcControlCo
 
 LEGO runs guest threads one at a time under a turn (a GIL with explicit hand-offs). The title movie ended on a black screen in about 1 run in 5: `KeResumeThread` (or `ResumeThread`) put the player's demux thread back in the rotation after it had exited, and the turn waited for it forever.
 - Mark a thread as gone when it leaves, and refuse to add a gone id again (log the refusal: `[SCHED] slot N ... not added again`).
-- A watchdog thread that notices the turn not moving while others wait, prints who holds it and hands the turn on, found this in the emulator and is cheap to keep (`[SCHEDWATCH]`, behind a switch).
+- A watchdog thread that notices the turn not moving while others wait, prints who holds it and hands the turn on, found this in the emulator and is cheap to keep (`[SCHEDWATCH]`, behind a switch). Both pieces, against a minimal scheduler: `tools/sched_watchdog.cpp`.
 - Confirmed on the console in run 124: the refusal lines printed and the game went back to the title.
 
 ## Finding where a guest thread spends time without a profiler (LEGO)

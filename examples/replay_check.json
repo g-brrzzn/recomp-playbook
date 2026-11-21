@@ -1,0 +1,17 @@
+{
+  "_comment": "LEGO's log lines, as an example for tools/replay_check.py. Replace the regexes with your port's markers.",
+  "level": "^\\[LEVEL\\] (?:.*\\\\)?(.+?) \\(frame (\\d+)\\)",
+  "anchor": "^\\[SCRIPT\\] line \\d+ frameset at .*?\\(level (?:.*\\\\)?(\\S+), (\\w+) frames?, .*frame (\\d+)\\)",
+  "done": "^\\[SCRIPT\\] done",
+  "failed": "^\\[SCRIPT\\] failed\\s*(.*)",
+  "crash": ["^\\[CRASH\\]", "^\\[FATAL\\]"],
+  "work": {
+    "regex": "\\[WORK\\] per replay \\((?P<replays>\\d+)\\): nvc0 draws (?P<draws>[\\d.]+), vertices (?P<vertices_k>[\\d.]+) k, vertex program (?P<vs_kb>[\\d.]+) KB, pixel program (?P<ps_kb>[\\d.]+) KB .*\\| guest calls (?P<calls_k>[\\d.]+) k",
+    "fields": ["draws", "vertices_k", "vs_kb", "ps_kb", "calls_k"],
+    "replays_group": "replays",
+    "light": {"field": "draws", "below": 150}
+  },
+  "noise": 5.0,
+  "field_noise": {"vertices_k": 12.0},
+  "gap_tolerance": 3
+}

@@ -62,7 +62,7 @@ During the long run, the runner copies the save folder the moment each level sta
 
 ## "Is it the same game?" (LEGO)
 
-With a fixed frame time (`--fixed-dt`), replaying a script is deterministic. LEGO's runner (`emu_test.py`) counts game frames between the script's state changes (a door, a cutscene). Those numbers do not change between runs (hub 796, heavy level 4,252), give or take 1–2 frames. More than 3 off means the build did not play the same game.
+With a fixed frame time (`--fixed-dt`), replaying a script is deterministic. LEGO's runner (`emu_test.py`; generic version `tools/replay_check.py`, which reads any runner's log) counts game frames between the script's state changes (a door, a cutscene). Those numbers do not change between runs (hub 796, heavy level 4,252), give or take 1–2 frames. More than 3 off means the build did not play the same game.
 
 It also compares the **work per level** (draws, vertices, shader bytes) with a baseline and marks fields that moved more than 5 %. That informs but does not fail the run: an optimization is meant to change the work. To check the measure detects anything, switching off two state filters on purpose raised shader bytes by 191 % in the heavy level, and nothing else moved past 5 %.
 

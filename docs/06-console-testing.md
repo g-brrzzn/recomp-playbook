@@ -34,7 +34,7 @@ When a change can be switched during play, one build is enough:
 
 ## Staging the session (LEGO)
 
-`stage_run.py <label>` prepares the card and refuses silly mistakes:
+`stage_run.py <label>` (generic version: `tools/stage_console.py`) prepares the card and refuses silly mistakes:
 - refuses a build whose NACP version does not end with the label, or whose NRO is older than its ELF;
 - keeps the ELF aside (to read crash stacks later) and refuses to overwrite a different ELF with the same label;
 - checks each copy's SHA-256 and writes a manifest that another script checks on the card;

@@ -1,0 +1,37 @@
+{
+  "sd_app": "switch/manhunt1_nx",
+  "env_file": "manhunt.env",
+  "base_env": [
+    "RECOMP_SPAN_4G=1",
+    "MANHUNT_GPU_BACKEND=2",
+    "MANHUNT_AUDIO_APU=1",
+    "MANHUNT_PERF_LOG=2",
+    "RECOMP_FPS_LOG=1",
+    "RECOMP_GL_DUMP_READ=wide"
+  ],
+  "log_var": "MANHUNT_LOG_FILE",
+  "exit_var": "MANHUNT_AUTO_EXIT_SECS",
+  "script_var": "MANHUNT_PAD_SCRIPT",
+  "max_steps": 512,
+  "game_link": "game",
+  "game_check": "DEFAULT.xbe",
+  "save_dir": "save",
+  "snapshot_ignore": ["Partition*.img"],
+  "keep_newest": {"parent_glob": "UDATA/*", "file_glob": "*.xsv"},
+  "markers": {
+    "exit": "[MH-EXIT]",
+    "auto_exit": "auto exit",
+    "crash": ["[MH-CRASH]"],
+    "level": "[MH-LEVEL] "
+  },
+  "perf_regex": "\\[perf\\] [\\d.]+s fps (?P<fps>[\\d.]+) .*?draws (?P<draws>[\\d.]+) verts (?P<verts>[\\d.]+)",
+  "heavy": {"field": "verts", "min": 20000},
+  "errors": {
+    "crash": "\\[MH-CRASH\\]",
+    "watchdog_stall": "\\[MH-WD\\] .*: pc \\+",
+    "gl_error": "GL error|glGetError",
+    "audio_underrun": "underruns \\d+ \\(\\+[1-9]",
+    "audio_silent": "played 0/s"
+  },
+  "emu_noise": ["TimeZoneBinary", "the cursor"]
+}

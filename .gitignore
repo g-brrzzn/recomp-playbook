@@ -1,0 +1,14 @@
+__pycache__/
+*.pyc
+# run output and anything derived from a game: never commit
+emu-runs/
+saves/
+*.nro
+*.nso
+*.elf
+*.xbe
+*.xex
+*.iso
+*.keys
+*.gcda
+*.stream

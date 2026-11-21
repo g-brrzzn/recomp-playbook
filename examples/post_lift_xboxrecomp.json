@@ -1,0 +1,36 @@
+{
+  "files": "recomp_[0-9][0-9][0-9][0-9].c",
+  "anchor": "#include \"recomp_funcs.h\"",
+  "function": "^(void (?:sub_[0-9A-F]+|xbe_entry_point)\\(void\\)\\n\\{\\n)",
+  "edits": [
+    {
+      "name": "membase",
+      "env": "MANHUNT_MEMBASE_LOCAL",
+      "header": [
+        "#undef XBOX_PTR",
+        "#define XBOX_PTR(addr) ((uintptr_t)(uint32_t)(addr) + _plmb)"
+      ],
+      "local": "const uintptr_t _plmb = (uintptr_t)g_xbox_mem_offset;"
+    },
+    {
+      "name": "regs",
+      "env": "MANHUNT_GUEST_REGS",
+      "header": [
+        "#include \"guest_regs.h\"",
+        "#undef eax", "#define eax (_plr->r_eax)",
+        "#undef ecx", "#define ecx (_plr->r_ecx)",
+        "#undef edx", "#define edx (_plr->r_edx)",
+        "#undef esp", "#define esp (_plr->r_esp)",
+        "#undef ebx", "#define ebx (_plr->r_ebx)",
+        "#undef esi", "#define esi (_plr->r_esi)",
+        "#undef edi", "#define edi (_plr->r_edi)",
+        "#undef g_ebp", "#define g_ebp (_plr->r_ebp)",
+        "#undef g_seh_ebp", "#define g_seh_ebp (_plr->r_seh_ebp)",
+        "#undef g_fp_top", "#define g_fp_top (_plr->r_fp_top)",
+        "#undef g_fp_stack", "#define g_fp_stack (_plr->r_fp_stack)",
+        "#undef g_df", "#define g_df (_plr->r_df)"
+      ],
+      "local": "RecompGuestRegs *const _plr = &g_guest_regs;"
+    }
+  ]
+}

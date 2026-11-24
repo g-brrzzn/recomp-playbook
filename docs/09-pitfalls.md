@@ -32,3 +32,10 @@ Things that cost time. Each has a short fix.
 | A thread holds the turn forever after another exits (LEGO) | A resume put an exited thread back in the scheduler | Mark gone threads and refuse them; a watchdog (guide 11) |
 | A strong override is never called (LEGO) | Callers in the same generated file use a local alias | Hook a function whose callers are in other files (guide 07) |
 | A fix looks twice as fast in the emulator and is slower on the console (LEGO) | Emulator timing differs, e.g. the movie fence wait | Speed claims from the console only (guide 07) |
+| A and B swapped with SDL on the Switch (RTCW) | SDL's built-in Switch mapping is by position, not by the label on the button | `SDL_GAMECONTROLLERCONFIG` with a mapping by label, set before SDL starts (guide 12) |
+| The system keyboard opens by itself and stays up (RTCW) | `SDL_StartTextInput` on the Switch shows the software keyboard | Do not call it; open the keyboard when a text field is clicked (guide 12) |
+| Timed pad scripts stop working after a menu change (RTCW) | What the script clicked moved (menus made 16:9) | Steps that wait for the game (guide 05) |
+| The emulator shows the same FPS on every map (RTCW) | Ryubing presents at the PC monitor's rate | Thread CPU time per frame on a fixed scene (guide 01) |
+| High CPU time in the renderer, and no CPU change helps (RTCW) | `glFinish` and fence waits spin on the Switch's Mesa | Wall against CPU time, and the profiler (guides 01 and 07) |
+| A new path without a GPU wait still waits (RTCW) | The old sync path also cleared a flag that made the swap call `glFinish` | Check what else the replaced code set (guide 07) |
+| A profile names the wrong functions (RTCW) | Named with the ELF of another build | Keep each tested build's ELF beside its logs |

@@ -1,6 +1,6 @@
 # GPU, video and cores
 
-Almost all of this comes from LEGO, which uses OpenGL on Mesa/nouveau. Manhunt also uses Mesa/nouveau, but there the CPU was the limit (a 2.5× faster GPU changed nothing).
+Almost all of this comes from LEGO, which uses OpenGL on Mesa/nouveau. Manhunt also uses Mesa/nouveau, but there the CPU was the limit (a 2.5× faster GPU changed nothing). RTCW (iortcw's GL1 renderer on devkitPro's Mesa 20.1) added what its OpenGL calls cost on that Mesa, at the end.
 
 ## Handheld GPU clock (LEGO)
 
@@ -89,3 +89,32 @@ The 360 renders into EDRAM and "resolves" (copies) the result into a texture. In
 ## One tile instead of three (LEGO)
 
 The game drew its world three times per frame because of the 360's EDRAM. The engine's layout function had a plain path; forcing that path, without changing MSAA or resolution, was one of the two largest CPU steps of the port. In another 360 game, look for what EDRAM makes the engine repeat.
+
+## GL calls that wait for the GPU on the Switch's Mesa (RTCW)
+
+Found with the sampling profiler (guide 06), which names the waits; Mesa 20.1 from devkitPro (nouveau, nvc0).
+
+| Call | What it does here | Seen |
+|---|---|---|
+| `glFinish`, `glClientWaitSync` with a timeout | Waits by **spinning** in `nouveau_fence_wait`: the wait counts as CPU time (guide 01) | Console: 26 ms of CPU per frame in the back end |
+| `glReadPixels` of one depth value (Quake III's flare test, every flare, every frame) | Waits for the GPU to finish everything sent so far: CPU and GPU take turns | Emulator, profiler: 22-30 % of the back end |
+| The same read into a pixel buffer object | Still waits: Mesa reads depth as float through the CPU (`st_MapRenderbuffer`) | Emulator, profiler |
+| An occlusion query's result (`GL_QUERY_RESULT`), even two frames later | Waits for the newest query, not that one: nvc0 keeps queries in one buffer | Emulator, profiler |
+| `GL_QUERY_RESULT_AVAILABLE` | Never says yes without a wait elsewhere | Emulator |
+| An occlusion query written by the GPU into a buffer of its own (`GL_ARB_query_buffer_object`), one buffer per frame of a ring of 3, read two frames later | **No wait**: the buffer's last GPU write was two frames ago | Emulator: back-end waits 30 % → 7.5 %, every result used, in-game screenshots the same as the engine's test |
+
+RTCW's flare test now draws one invisible point where the flare is, 24 units nearer the eye (the engine's own tolerance), inside an occlusion query, and reads the result through the query buffer two frames later (33 ms: the flare fades anyway). Behind a switch, with the engine's read as the other choice.
+
+**Pitfall that came with it:** the engine's flare test also cleared a "finished" flag (`glState.finishCalled = qfalse`), which made the swap call `glFinish`. The new path skipped the read but still cleared the flag, so every frame with a flare ended in a spinning `glFinish`. When replacing a sync path, check what else it set.
+
+## GPU time by part of the frame (RTCW)
+
+- A `GL_TIME_ELAPSED` query around each whole frame, read a few frames later, gives the GPU time per frame. Only one such query can be open, so parts of the frame use `glQueryCounter(GL_TIMESTAMP)` pairs instead: RTCW times each 3D scene that way, and the rest of the frame is 2D (HUD, menus).
+- Works on the console. In Ryubing both return 0.
+- With the GPU logged once a second, a session can switch one renderer feature off at a time and read its GPU cost (guide 06).
+
+## Render resolution and the screen (RTCW)
+
+- **Lower resolution:** rendering at 960×540 instead of 1280×720 (the system scales it up) halved the GPU time in handheld (forest 17 → 8.8 ms, the first level 13-14 → 7 ms) and the first level reached 60 FPS (console). A setting, applied at the next video restart.
+- **The frame chain:** devkitPro's Mesa (`switch-mesa`, EGL platform patch) gives the window 3 buffers. `eglSwapInterval(0)` reaches the system but did not lift the 30 FPS on the console.
+- **A frame queued before the GPU is done (open):** in a scene where the CPU took 5 ms and the GPU 8.8 ms, frames still came every 33 ms, the main thread asleep in `nwindowDequeueBuffer` 87 % of the back end. The same level at 960×540 with a `glFinish` before the swap ran at 60. The guess: a frame queued while the GPU still draws it misses a refresh. RTCW's fourth session compares no wait, `glFinish` and a fence polled with short sleeps. **UNVERIFIED**.

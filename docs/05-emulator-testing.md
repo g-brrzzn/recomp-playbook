@@ -1,6 +1,6 @@
 # Emulator testing
 
-Both ports test in **Ryubing 1.3.3** (a Ryujinx fork), headless, with the pad driven by a script. It catches hangs, new errors and image regressions between two builds, several times a day, without a console. It does not measure speed (guide 01).
+Every port tests in **Ryubing 1.3.3** (a Ryujinx fork), headless, with the pad driven by a script. It catches hangs, new errors and image regressions between two builds, several times a day, without a console. It does not measure frame rate or GPU time; CPU work only in a narrow way (guide 01).
 
 ## Running headless
 
@@ -20,6 +20,16 @@ Ryujinx.exe --no-gui --disable-docked-mode --skip-user-profiles-manager --ignore
 The port reads a button script (steps `<ms>:<button>[+<button>][:<hold>]`) from an environment variable and plays by itself. Together with an auto exit after N seconds, a run needs nobody around. The same script and the same NRO work in the emulator and on the console.
 
 LEGO also records what a tester plays and converts it into a script (`padrec_to_script.py`), and has a `speed max` step that lifts the frame limiter outside the menus.
+
+### Scripts that wait for the game (RTCW)
+
+A timed script presses buttons at fixed moments. In RTCW the timed scripts broke the day the menus became 16:9: the button they clicked by moving the cursor for a fixed time had moved. The port's command script has steps that wait instead:
+- `@waitlevel`: until a map has loaded since the last command and its first menu has the input;
+- `@waitgame`: until no menu, console or cutscene has the input;
+- `@cursor dx dy`: moves the menu cursor in the menu's own units, so `@cursor -2000 -2000` then `@cursor 600 450` lands on one spot whatever the screen;
+- `@skipcam`: presses enter while a cutscene runs.
+
+The same script runs in the emulator and on the console, whose loads are two or three times longer.
 
 ## The runner (`tools/ryubing_run.py`)
 
@@ -59,6 +69,11 @@ LEGO does the same with a per-frame `[LEVEL]` marker.
 During the long run, the runner copies the save folder the moment each level starts loading (`--save-snapshots`). Later, `--level <name>` restores that save and plays only that level. Two cautions:
 - **Leave out partition images.** The first snapshots were 49 GB, because they carried the Xbox disk images (`Partition*.img`) that the port rebuilds at boot.
 - **Keep only the newest save.** With several saves, the game loaded an older one of its own choosing.
+
+## Shorter runs that answer the same thing (RTCW)
+
+- **A console session, checked in the emulator first, with short states.** The script generator writes the console's session and a copy whose states last 2-3 s instead of 10-12. The copy only has to show the session goes through to its end (every state, every restart, no error): 6 minutes instead of 21. What remains are the map loads and video restarts.
+- **The emulator benchmark:** two maps instead of three (the third showed nothing the other two did not), 8 s standing still each instead of 15: 72 s a run instead of 3.5 minutes, at about 10 % noise instead of 6 %. For a difference under ~10 %, two short runs still cost less than one long run. `tools/ab_compare.py --by` compares two such runs map by map.
 
 ## "Is it the same game?" (LEGO)
 

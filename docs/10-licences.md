@@ -17,5 +17,6 @@ The tools here were written for these ports and rewritten in generic form, under
 | OpenGL NV2A renderer from the Burnout 3 Switch port | MIT | Manhunt |
 | XenonRecomp | see its `LICENSE.md` | LEGO |
 | The LEGO port's upstream repository | CC BY-NC-SA 4.0 | LEGO |
+| iortcw (the engine of Return to Castle Wolfenstein) | GPLv3 with id Software's additional terms | RTCW |
 
 When copying a piece of any of them elsewhere, follow its licence and keep the credit. When in doubt, rewrite the technique and cite where it came from.

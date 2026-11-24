@@ -49,3 +49,11 @@ LEGO runs guest threads one at a time under a turn (a GIL with explicit hand-off
 ## Finding where a guest thread spends time without a profiler (LEGO)
 
 A host thread that polls a guest thread's context (its `lr` and frame chain) every 20-500 µs is cheap and showed the main thread's trail before a crash, but it missed events that happen within microseconds: a probe inside the code path (an override of a function called from another file) catches them. When the game stalls, a GDB dump of every thread's stack (guide 05) shows which guest thread holds the turn.
+
+## Which cores and threads are busy (RTCW)
+
+Two measures, both in `tools/core_usage.c`:
+- **Busy per core.** The kernel gives a core's idle time (`svcGetInfo` `InfoType_IdleTickCount`) only to a thread running on that core. A small thread pinned to each of cores 0-2, at a high priority, wakes once a second and reads it.
+- **Every thread of the process.** `-Wl,--wrap=threadCreate` sees every thread anyone creates (SDL, Mesa, newlib's pthreads), with the creating calls from the frame pointer chain; its CPU share comes from `InfoType_ThreadTickCount`. In the emulator this listed SDL's audio thread and showed Mesa had none.
+
+What it showed on the console (RTCW, iortcw's single-threaded engine): the main thread, allowed on any core, did everything and moved between cores 0 and 1; core 2 sat idle. In a scene where frames waited for the screen, the cores were 15-33 % busy: no CPU work would have helped there. A second thread (the renderer's back end, as Quake III's SMP mode did) has two free cores to use when the CPU is the limit. **UNVERIFIED**: not tried yet.

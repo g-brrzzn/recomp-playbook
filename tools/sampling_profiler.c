@@ -15,10 +15,14 @@
  * names the addresses from the ELF of the same build.
  *
  * What it adds to a plain pc sampler:
- * - The call chain follows the frame pointers (x29) first. Build your own code with -fno-omit-frame-pointer:
+ * - The call chain follows the frame pointers (x29). Build your own code with -fno-omit-frame-pointer:
  *   code without frame pointers (Mesa, libnx) leaves x29 alone, so a sample deep in the driver still leads
- *   back through the game's calls exactly. Where the chain is too short, a stack scan takes over (each word
- *   that points just after a BL/BLR counts as a return address: probably calling, not exact).
+ *   back through the game's calls exactly. x29 then points at the frame of the last function that has one,
+ *   so the driver's calls, and the return into that function, are only in the stack below it: a scan of that
+ *   part comes first. Each word that points just after a BL/BLR counts as a return address, if the BL went
+ *   into the function of the frame found before it: code without frame pointers leaves old return addresses
+ *   in its locals. Where the chain is still too short, the whole stack is scanned, unchecked (probably
+ *   calling, not exact).
  * - A sample whose pc is at or just after an SVC is the thread blocked in the kernel (a GPU fence, the
  *   swap chain, a mutex, sleep). The report splits waiting from working, and names what waited.
  * - The phase and label tell which part of the frame and which A/B state a sample belongs to.
@@ -30,8 +34,9 @@
 #include <string.h>
 #include <switch.h>
 
-#define PROF_FRAMES 16          /* pc, lr, then return addresses */
-#define PROF_WORDS  2048        /* stack words scanned when the frame chain is short */
+#define PROF_FRAMES 20          /* pc, lr, then return addresses */
+#define PROF_WORDS  2048        /* stack words scanned */
+#define PROF_FUNC_MAX 0x10000   /* a function's size, at most: how far below a frame a call may land */
 #define PROF_TABLE  (1 << 14)   /* distinct (phase, label, chain) per window */
 #define PROF_WINDOW_MS 30000
 #define PROF_NAMES  32
@@ -69,6 +74,57 @@ static bool follows_call(u64 v)
     if ((v & 3) || v < g_code_base + 4 || v >= g_code_end) return false;
     u32 insn = *(const u32 *)(v - 4);
     return (insn & 0xFC000000u) == 0x94000000u || (insn & 0xFFFFFC1Fu) == 0xD63F0000u;   /* BL, BLR */
+}
+
+/* The target of the BL just before return address r; 0 for a BLR (through a pointer: it tells nothing). */
+static u64 call_target(u64 r)
+{
+    u32 insn = *(const u32 *)(r - 4);
+    if ((insn & 0xFC000000u) != 0x94000000u) return 0;
+    return r - 4 + (u64)((s64)((s32)(insn << 6) >> 6) * 4);
+}
+
+/* Whether a call to target can have led to code at inner (inner is in the function at target). */
+static bool leads(u64 target, u64 inner) { return target && target <= inner && inner - target < PROF_FUNC_MAX; }
+
+static int append(u32 *frames, int n, u64 v)
+{
+    u32 off = (u32)(v - g_code_base);
+    if (n < PROF_FRAMES && off != frames[n - 1] && off != frames[1]) frames[n++] = off;
+    return n;
+}
+
+/* The stack below the last frame record: the calls made by code without frame pointers. A word counts
+ * when the BL before it went into the function of the frame found before it. A BLR can't be checked: it
+ * waits until a later checked call (or the frame chain's first return) leads into it. */
+static int scan_below(u32 *frames, int n, const ThreadContext *ctx, u64 fp, u64 limit)
+{
+    const u64 *word = (const u64 *)(ctx->sp & ~(u64)7);
+    u64 known[2] = {ctx->pc.x, ctx->lr}, pending[3];
+    int num_known = 2, num_pending = 0;
+    for (int w = 0; word + w < (const u64 *)fp && w < PROF_WORDS && n < PROF_FRAMES - 6; w++) {
+        u64 r = word[w], target;
+        if (!follows_call(r)) continue;
+        if (!(target = call_target(r))) {
+            if (num_pending == 3) { memmove(pending, pending + 1, 2 * sizeof pending[0]); num_pending--; }
+            pending[num_pending++] = r;
+            continue;
+        }
+        int hit = -1;
+        for (int k = 0; k < num_known; k++) if (leads(target, known[k])) hit = -2;   /* the BLRs were old words */
+        for (int k = num_pending - 1; hit == -1 && k >= 0; k--) if (leads(target, pending[k])) hit = k;
+        if (hit == -1) continue;   /* an old word, left from earlier calls */
+        for (int k = 0; k <= hit; k++) n = append(frames, n, pending[k]);
+        n = append(frames, n, r);
+        known[0] = r; num_known = 1; num_pending = 0;
+    }
+    if (num_pending && fp + 16 <= limit && follows_call(((const u64 *)fp)[1])) {
+        u64 target = call_target(((const u64 *)fp)[1]);
+        int hit = -1;
+        for (int k = num_pending - 1; hit == -1 && k >= 0; k--) if (leads(target, pending[k])) hit = k;
+        for (int k = 0; k <= hit; k++) n = append(frames, n, pending[k]);
+    }
+    return n;
 }
 
 /* The saved pc of a thread in a syscall is the SVC itself or the instruction after it. */
@@ -120,6 +176,7 @@ static void sample(void)
         if (R_SUCCEEDED(svcQueryMemory(&mi, &page, ctx.sp)) && (mi.perm & Perm_R)) {
             const u64 limit = mi.addr + mi.size;
             u64 fp = ctx.fp;
+            if (fp > ctx.sp && fp <= limit) n = scan_below(frames, n, &ctx, fp, limit);
             while (n < PROF_FRAMES && fp >= ctx.sp && fp + 16 <= limit && !(fp & 7)) {
                 const u64 *record = (const u64 *)fp;
                 if (in_code(record[1])) {

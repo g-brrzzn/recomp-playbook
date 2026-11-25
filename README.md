@@ -14,18 +14,18 @@ Each item says which port it came from, what was measured and where (console or 
 
 | Guide | Topic |
 |---|---|
-| [docs/01-method.md](docs/01-method.md) | Measuring without fooling yourself: console against emulator (and the CPU time the emulator can rank), A/B, null control, switches to turn things off, waiting that looks like work |
+| [docs/01-method.md](docs/01-method.md) | Measuring without fooling yourself: console against emulator (and the CPU time the emulator can rank), A/B, null control, switches to turn things off, waiting that looks like work, reading the clocks before tuning |
 | [docs/02-reproducible-build.md](docs/02-reproducible-build.md) | Docker pinned by digest, clean builds, memory, line endings |
 | [docs/03-generated-code.md](docs/03-generated-code.md) | Changes to the generated C: memory base, registers, `-Os`, `-O3`, addressing, what gave no gain |
 | [docs/04-pgo-on-switch.md](docs/04-pgo-on-switch.md) | PGO in a homebrew: counters streamed to the SD card, merging on the PC, pitfalls |
 | [docs/05-emulator-testing.md](docs/05-emulator-testing.md) | Headless Ryubing, scripted pad and scripts that wait for the game, per-level tests, per-level saves, shorter runs, same-game check, locating a crash from the Ryujinx log |
 | [docs/06-console-testing.md](docs/06-console-testing.md) | A/B kit, per-build logs, one session answering many questions, comparing only scenes of similar load, measured noise, profilers |
-| [docs/07-gpu-video-and-cores.md](docs/07-gpu-video-and-cores.md) | Handheld clock, fourth core, shader and translation caches, ZCULL, video through FFmpeg, movie tearing, resolve hand-over, GL calls that wait on the Switch's Mesa, GPU time per part of the frame, render resolution |
+| [docs/07-gpu-video-and-cores.md](docs/07-gpu-video-and-cores.md) | Handheld clock, real clocks and the CPU boost trap, fourth core, shader and translation caches, ZCULL, video through FFmpeg, movie tearing, resolve hand-over, GL calls that wait on the Switch's Mesa, GPU time per part of the frame and the GPU clock's scale, render resolution |
 | [docs/08-porting-another-game.md](docs/08-porting-another-game.md) | What carries over to another game, finding functions by signature, milestones |
 | [docs/09-pitfalls.md](docs/09-pitfalls.md) | Things that cost time |
 | [docs/10-licences.md](docs/10-licences.md) | What never goes in here, licences |
 | [docs/11-runtime-memory-and-threads.md](docs/11-runtime-memory-and-threads.md) | Guest memory map, reservations against commits, the console's mapping limit, the cooperative scheduler, busy cores and threads |
-| [docs/12-open-source-engine-ports.md](docs/12-open-source-engine-ports.md) | Porting an open-source engine: upstream kept untouched, game modules without `dlopen`, a controller on mouse menus, 16:9, settings |
+| [docs/12-open-source-engine-ports.md](docs/12-open-source-engine-ports.md) | Porting an open-source engine: upstream kept untouched, game modules without `dlopen`, a controller on mouse menus, 16:9, settings, loads and saves on the SD card |
 
 ## Tools
 

@@ -34,12 +34,16 @@ When a change can be switched during play, one build is enough:
 
 ## One session, many answers (RTCW)
 
-A session that stands still at a fixed scene and changes one thing at a time answers several questions in one trip. RTCW's fourth session, ~17 minutes, on two maps:
-- states with a label in the log (`nx_abLabel`), 10-12 s each: three ways to wait for the GPU before the swap at two resolutions, then each renderer feature off alone (dynamic lights, trilinear filtering, sky, sun, flares, model detail, fog, texture size, detail textures). With the GPU time logged per second, each state gives that feature's GPU cost;
-- **a reference state set explicitly** before the feature states: every setting at its known value, not whatever the tester's saved settings hold (the tester's config came from an earlier session and differed from the defaults);
-- settings that need a video restart go through the port's own restart command, which sets the Switch's resolution (and the resolution scale under test) before restarting: one restart in and one out;
+A session that stands still at a fixed scene and changes one thing at a time answers several questions in one trip:
+- states with a label on every log line (a setting the script changes); **8 s each is enough** at a steady frame rate, so two maps with 7-12 states fit in 3-7 minutes. A 17-minute session was too long for the tester;
+- **the clocks in the log** at start, after every change and every few seconds (guide 07): the first thing to read in every session;
+- **a reference state set explicitly** before the others: every setting at its known value, not whatever the tester's saved settings hold;
+- **a cause control:** when a fix rests on a cause, one state turns the cause back on (the old CPU boost brought the old 30 FPS back): that proves it in the same session;
 - **null control:** the reference state again at the end;
-- test-only settings are not saved in the player's config, so the game is the same after the test;
+- what changes between states happens under a label of its own, so no state gets a second of the one before; changes that must settle (clocks) wait a second and a half;
+- settings that need a video restart go through the port's own restart command, which sets the Switch's resolution first: one restart in and one out;
+- test-only settings are not saved in the player's config, and clocks set for a test go back on exit, so the game is the same after the test;
+- a scripted stretch of play, and the tester's own after it: standing still is lighter than play;
 - the session is checked in the emulator first in its short form (guide 05).
 
 ## Staging the session (LEGO)

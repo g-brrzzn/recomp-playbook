@@ -31,6 +31,8 @@ A timed script presses buttons at fixed moments. In RTCW the timed scripts broke
 
 The same script runs in the emulator and on the console, whose loads are two or three times longer.
 
+Know what each step waits for. `@waitlevel` waits for the pregame screen; a loaded savegame has none, and loading a save of the map one is on gives no new level at all: the script waited until its time ran out. Load a save with `@waitgame` (its time is the load's), and from another map.
+
 ## The runner (`tools/ryubing_run.py`)
 
 1. Links the game folder into the emulated card with a junction (never copies it).

@@ -5,8 +5,8 @@ From RTCW: the single-player game of Return to Castle Wolfenstein on the Switch 
 ## Keep the upstream tree almost untouched
 
 - The port lives in its own folder (`nx/`); the engine's `Makefile` gets two `-include` lines that do nothing unless the platform is the Switch.
-- Changes inside the engine are small and each marked with a comment (`Return to Castle NX`), listed in one table in the port's docs. RTCW touches 18 engine files, most of them in a few lines.
-- Hooks without editing: `-Wl,--wrap=<function>` puts the port in front of an engine function called from another object file. RTCW wraps the input queue (the controller in menus), the server and client frames, the sound update, the swap, the command buffer and file reads (per-phase timing, guide 01), and `threadCreate` (guide 11). Like the strong overrides of guide 07, a wrap does not see calls from inside the same object file.
+- Changes inside the engine are small and each marked with a comment (`Return to Castle NX`), listed in one table in the port's docs, most of them a few lines.
+- Hooks without editing: `-Wl,--wrap=<function>` puts the port in front of an engine function called from another object file. RTCW wraps the input queue (the controller in menus), the parts of the frame (per-phase timing, guide 01), the load functions (the CPU boost, below), file reads and `threadCreate` (guide 11). Like the strong overrides of guide 07, a wrap does not see calls from inside the same object file, nor calls through a function pointer set in it (console commands).
 
 ## Game modules without `dlopen`
 
@@ -33,7 +33,13 @@ The menus and HUD are laid out for 640×480 and were stretched to 16:9 (an oval 
 - The engine applies its own hardware preset on the first run (in RTCW, `r_mode 3`: 640×480). The port puts the Switch's resolution back after it.
 - The port's own defaults (vsync, frame cap, texture size, 16:9) are applied once and versioned: each new version sets only what it adds, so a player's earlier changes stay.
 - `fs_basepath` and `fs_homepath` are forced to the port's folder on the card: the engine's guess pointed at the homebrew folder.
+- **Closing from HOME never quits.** ioquake3-based engines keep a PID file while running and take a leftover one for a crash: the next start asked for "safe" video settings (640×480, windowed), which the port then undid with a second video restart, at every start. On the Switch, only report it.
 
-## Loads (open)
+## Loads and saves on the SD card
 
-A map took 21-33 s to load on the console (9-11 s in the emulator), of which 6-8 s were spent reading 73-92 MB from the card, the rest in the engine building the level. Not worked on yet.
+Every small read or write is a request to the system's file service, and Quake III's file code makes many. What the profile (guide 06) found, with the console's numbers:
+- **A zip opened again for every file.** Quake III's file system gives each file the game modules open (`uniqueFILE`) its own `unzOpen` of the pk3, and `unzOpen` searches the zip's central directory from the end of the file: about 70 small reads each. It was most of the load samples, mostly the UI parsing its menus (the engine restarts the UI at every map load). Fix: an `unzReOpen` that copies the already open pak's state and opens only a new file stream (ioquake3 once had one).
+- **Saves flushed every 1 KB.** newlib's default buffer is small, and RTCW's savegame code writes in small pieces: a save took 3.5-4.6 s, 80 % of it waiting in `fsFileWrite`. Fix: `setvbuf` with 64 KB for files opened for writing: 0.15-0.6 s.
+- **The CPU boost over the whole load** (guide 07). Only in the server's and cgame's load functions, it left the UI's restart and the reads between at 1020 MHz, the file service included, and loads got slower than with the boost always on. Fix: on from the client connecting to its first frame in game, and around every video restart.
+- Together, a map load went from 33 s to 14-15 s (from 24.5 s with the boost always on), and the start to the main menu from 15.4 s to 1.9 s (console).
+- To find the unboosted part: split the load phases' profile samples into those inside the boosted functions and those outside.

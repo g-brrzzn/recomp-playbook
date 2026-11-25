@@ -19,7 +19,7 @@ In RTCW the emulator did rank CPU-side changes, measured another way:
 - **What:** the main thread's CPU time per frame from the kernel (`svcGetInfo` `InfoType_ThreadTickCount`), with the player standing still at the start of a map (the same scene every run), no frame cap. Not FPS: Ryubing showed 165 FPS on every map, the PC monitor's rate.
 - **Against the console:** in the same scenes the console took about 1.5 to 2.5 times the emulator's CPU time.
 - **Noise:** about 6 % between runs with 15 s per scene, about 10 % with 8 s.
-- **What it found:** the profiler (guide 06) showed a wait for the GPU in every frame, in the emulator first; removing it cut the client's time in that scene by 68 % there. On the console the gain did not show yet: another wait took its place (section 9).
+- **What it found:** the profiler (guide 06) showed a wait for the GPU in every frame, in the emulator first; removing it cut the client's time in that scene by 68 % there. On the console the frame rate did not move: the frame was bound by a GPU clock left at 76.8 MHz (section 10), which no CPU gain can show.
 - **What it cannot do:** GPU time (Ryubing's timer queries return 0) and when frames reach the screen. Those stay console only.
 
 **Rule:** every number carries the place where it was measured. Anything not measured on the console is written as **UNVERIFIED**.
@@ -59,7 +59,7 @@ For two builds on the console: a, b, a, b, in the same mode (handheld or docked)
 
 ## 7. Short, honest reports
 
-Give the gain of each console session against the last one on the same scenes, in %, including when it is zero. In RTCW, from the second to the third session the first level's average FPS rose 11 % and its 95th and 99th percentile frame times fell 15 % and 18 %, while the scenes measured standing still stayed at exactly 30 FPS in all three: the stutter got better, the frame rate did not, and the report says so.
+Give the gain of each console session against the last one on the same scenes, in %, including when it is zero. In RTCW, from the second to the third session the first level's average FPS rose 11 % and its 95th and 99th percentile frame times fell 15 % and 18 %, while the scenes measured standing still stayed at exactly 30 FPS in all three: the stutter got better, the frame rate did not, and the report says so. (Why it did not came out two sessions later: section 10.)
 
 Each run gets an entry with the build, what changed, what is expected, what was measured, where, and what is still open. LEGO has one entry per build (log1 to log135) and one per console session (run 1 to 135). A result that does not repeat is written down as such.
 
@@ -79,3 +79,7 @@ Log, for each part of the frame, both the time it took and the thread's CPU time
 - A part with 26 ms of CPU time in 30 ms was not working either: `glFinish` on the Switch's Mesa waits by spinning, so a wait for the GPU counted as CPU time (guide 07). Only the profiler's samples (where the time went: `nouveau_fence_wait`) told the two apart.
 
 And one fix can hide another: the old path waited for the GPU by sleeping, so when it was removed, the next wait down the frame (the spinning one) took its place and the frame rate did not move.
+
+## 10. Read the clocks before tuning
+
+A frame bound by a clock the port did not mean to set looks like a hard limit. In RTCW, two console sessions tuned the GPU (a faster configuration, lower resolutions, waits before the swap) while a CPU boost left on from the start held it at 76.8 MHz; a clock line in the log (guide 07) would have shown it in the first session. Log the clocks the system really runs from the first session, and read them before anything else.

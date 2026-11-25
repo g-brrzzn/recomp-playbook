@@ -1,14 +1,21 @@
 # GPU, video and cores
 
-Almost all of this comes from LEGO, which uses OpenGL on Mesa/nouveau. Manhunt also uses Mesa/nouveau, but there the CPU was the limit (a 2.5× faster GPU changed nothing). RTCW (iortcw's GL1 renderer on devkitPro's Mesa 20.1) added what its OpenGL calls cost on that Mesa, at the end.
+Almost all of this comes from LEGO, which uses OpenGL on Mesa/nouveau. Manhunt also uses Mesa/nouveau, but there the CPU was the limit (a 2.5× faster GPU changed nothing). RTCW (iortcw's GL1 renderer on devkitPro's Mesa 20.1) added the CPU boost trap below, what OpenGL calls cost on that Mesa, and how to time the GPU, at the end.
 
-## Handheld GPU clock (LEGO)
+## Handheld GPU clock (LEGO, RTCW)
 
 A homebrew starts with the GPU at 307.2 MHz in handheld mode. The official configuration `0x92220008`, through `apmSetPerformanceConfiguration`, gives a 460.8 MHz GPU and 1331.2 MHz memory. It is not an overclock: it is a profile the system itself uses.
 - In LEGO, handheld was GPU-limited, and this clock became the default.
 - The call returns before the clock changes.
-- The IDs mean nothing on their own: `0x92220007` is another combination (memory at 1600 MHz).
+- The IDs mean nothing on their own: `0x92220007` is another combination (memory at 1600 MHz). Not every one is open to an application: `0x00020002` (CPU 1224 MHz) was refused (`0x494`) in RTCW.
 - It costs battery and heat. Say so to players.
+- An id Tech 3 GL1 renderer (RTCW) needed none of it: 1280×720 at 60 FPS with the GPU at 307.2 MHz, 5-7 ms of GPU a frame. Measure before raising clocks.
+
+**Read the clocks the system really runs, from the first session.** `clkrst` (`PcvModuleId_GPU`, `PcvModuleId_CpuBus`, `PcvModuleId_EMC`, `clkrstGetClockRate`) at start, after every change and every few seconds. A configuration's readback says what was asked, not what runs. For tests, `clkrstSetClockRate` sets a clock straight (it worked from an application); put it back on exit.
+
+**Pitfall (RTCW): the CPU boost for loading takes the GPU down to 76.8 MHz.** `appletSetCpuBoostMode(ApmCpuBoostMode_FastLoad)` is a configuration of its own (`0x9222000A` in handheld: CPU 1785 MHz, GPU 76.8 MHz, memory 1331.2) and wins over any other while it is on: `apmSetPerformanceConfiguration` is accepted and reads back, and the clocks do not move.
+- Left on after the start, it held RTCW at 30 FPS: the GPU took 27.6 ms a frame at 1280×720. Every GPU change tried meanwhile (a faster configuration, lower resolutions, waits before the swap) measured that clock, not the game.
+- Turn it on only while loading, and over the whole load: the CPU clock is the whole CPU's, so it also speeds the system's file service (guide 12).
 
 ## Fourth core (LEGO)
 
@@ -104,19 +111,21 @@ Found with the sampling profiler (guide 06), which names the waits; Mesa 20.1 fr
 | An occlusion query written by the GPU into a buffer of its own (`GL_ARB_query_buffer_object`), one buffer per frame of a ring of 3, read two frames later | **No wait**: the buffer's last GPU write was two frames ago | Emulator: back-end waits 30 % → 7.5 %, every result used, in-game screenshots the same as the engine's test |
 | The same kind of buffer (timestamps) read with `glGetBufferSubData` right after the swap, one frame after the GPU wrote it | Waits in `nouveau_fence_wait` for that frame | Emulator: back-end CPU 2 → 5 ms per frame. Read just before the buffer is reused, in a ring of 6: no wait, back end 2 ms |
 
-RTCW's flare test now draws one invisible point where the flare is, 24 units nearer the eye (the engine's own tolerance), inside an occlusion query, and reads the result through the query buffer two frames later (33 ms: the flare fades anyway). Behind a switch, with the engine's read as the other choice.
+**A flare test without a read** (Quake III's lens flares): draw one invisible point where the flare is, a little nearer the eye than the engine's own depth tolerance (24 units in RTCW), inside an occlusion query, and read the result through the query buffer two frames later (33 ms: the flare fades anyway). Behind a switch, with the engine's read as the other choice.
 
 **Pitfall that came with it:** the engine's flare test also cleared a "finished" flag (`glState.finishCalled = qfalse`), which made the swap call `glFinish`. The new path skipped the read but still cleared the flag, so every frame with a flare ended in a spinning `glFinish`. When replacing a sync path, check what else it set.
 
 ## GPU time by part of the frame (RTCW)
 
-- A `GL_TIME_ELAPSED` query around each whole frame, read a few frames later, gives the GPU time per frame. Only one such query can be open, so parts of the frame use `glQueryCounter(GL_TIMESTAMP)` pairs instead: RTCW times each 3D scene that way, and the rest of the frame is 2D (HUD, menus).
-- Works on the console. In Ryubing both return 0.
+- A `GL_TIME_ELAPSED` query around each whole frame, read a few frames later, gives the GPU time per frame. Only one such query can be open, so parts of the frame use `glQueryCounter(GL_TIMESTAMP)` pairs instead, e.g. around each 3D scene (the rest of the frame is 2D: HUD, menus).
+- **A timeline:** a timestamp at the frame's start and end and at each change of the kind of surface (sky, opaque, alpha-tested, blended, fog, 2D), written by the GPU into a buffer per frame (`GL_ARB_query_buffer_object`) and read just before the buffer is reused (the table above: read sooner, it waits). It gives the time per kind of surface and the GPU's idle gap between frames.
+- **On the console the GPU's clock runs at 0.614 of real time** (Mesa 20.1, nvc0): frames 33.3 ms apart were 20.48 apart on it (a frame's span plus the gap to the next), and 16.7 ms frames 10.24, with the GPU at 76.8 and at 460.8 MHz alike. So `GL_TIME_ELAPSED` and timestamps read 1.6 times short. Calibrate: over many frames the GPU starts frames exactly as often as the CPU does, so the two clocks' frame periods give the ratio.
+- **A cross-check without the timer:** wait for the GPU right before the swap (a fence) and time the wait. It is how long the GPU still had after the CPU sent the whole frame; it showed the timer's 1.6 before the calibration did.
+- Works on the console. In Ryubing the values are tiny or 0, and the ratio is meaningless.
 - With the GPU logged once a second, a session can switch one renderer feature off at a time and read its GPU cost (guide 06).
 
 ## Render resolution and the screen (RTCW)
 
-- **Lower resolution:** rendering at 960×540 instead of 1280×720 (the system scales it up) halved the GPU time in handheld (forest 17 → 8.8 ms, the first level 13-14 → 7 ms) and the first level reached 60 FPS (console). A setting, applied at the next video restart.
-- **The frame chain:** devkitPro's Mesa (`switch-mesa`, EGL platform patch) gives the window 3 buffers. `eglSwapInterval(0)` reaches the system but did not lift the 30 FPS on the console.
+- **Lower resolution cuts the GPU time less than the pixels:** at 90 %, 80 % and 75 % of 1280×720 (81 %, 64 % and 56 % of the pixels), RTCW's GPU time fell 15 %, 29 % and 36 % (measured with the GPU at 76.8 MHz). A setting, applied at the next video restart. Fix the clocks first: there it was not needed at all.
+- **The frame chain:** devkitPro's Mesa (`switch-mesa`, EGL platform patch) gives the window 3 buffers. When the GPU is the limit, `eglSwapInterval(0)` and waits before the swap change nothing.
 - **Where the frame waits:** the wait for a free window buffer comes at the next frame's first draw (`st_framebuffer_validate` → `nwindowDequeueBuffer`), so a timer per part of the frame puts it in the renderer, not in the swap.
-- **The GPU timer tells less than the frame takes (open):** in a scene where the CPU took 5 ms and `GL_TIME_ELAPSED` 8.8 ms, frames still came every 33 ms, the main thread asleep in `nwindowDequeueBuffer` 87 % of the back end. RTCW's fourth session ruled out a frame queued too early: no wait, `glFinish` and a fence polled with short sleeps before the swap gave the same frame rate. But those waits measured the GPU: after the CPU had sent the whole frame, the GPU took 1.6-1.8 times the timer's value to finish it, about 27.6 ms in forest at 1280×720 (timer 17.3) and 15.5 at 960×540, 22.6 and 11.5 in the first level, which fits the 30, 30, 30 and 60 FPS seen. What the timer leaves out is **UNVERIFIED**; RTCW's next session reads the GPU clock and timestamps per kind of surface.

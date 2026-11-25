@@ -38,4 +38,11 @@ Things that cost time. Each has a short fix.
 | The emulator shows the same FPS on every map (RTCW) | Ryubing presents at the PC monitor's rate | Thread CPU time per frame on a fixed scene (guide 01) |
 | High CPU time in the renderer, and no CPU change helps (RTCW) | `glFinish` and fence waits spin on the Switch's Mesa | Wall against CPU time, and the profiler (guides 01 and 07) |
 | A new path without a GPU wait still waits (RTCW) | The old sync path also cleared a flag that made the swap call `glFinish` | Check what else the replaced code set (guide 07) |
+| A performance configuration is accepted and nothing gets faster (RTCW) | The CPU boost for loading is a configuration of its own, with the GPU at 76.8 MHz, and wins while on | Read the real clocks (`clkrst`); boost only while loading (guide 07) |
+| Loads get slower after limiting the CPU boost to the load functions (RTCW) | The rest of the load (UI restart, reads between) ran at 1020 MHz, the file service too | The boost from connecting to the first frame in game (guide 12) |
+| Every start does a second video restart, from 640×480 (RTCW) | Closing from HOME never quits: a leftover PID file reads as a crash, and the engine picks "safe" video settings | Only report the PID file on the Switch (guide 12) |
+| A script waits forever after loading a save (RTCW) | It waited for a pregame screen, which a save does not have | Wait for play, and load the save from another map (guide 05) |
+| The GPU timer says less than the frame takes (RTCW) | Mesa's GPU clock runs at 0.614 of real time on the console | Calibrate against the frame period (guide 07) |
+| Loads slow, the profile full of `unzOpenInternal` (RTCW) | Quake III opens the pk3 again (and searches its directory) for every file a game module opens | `unzReOpen`: copy the open pak's state (guide 12) |
+| A save takes seconds (RTCW) | newlib's small stdio buffer: a write to the card every 1 KB | `setvbuf` 64 KB on written files (guide 12) |
 | A profile names the wrong functions (RTCW) | Named with the ELF of another build | Keep each tested build's ELF beside its logs |

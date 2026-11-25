@@ -23,6 +23,7 @@ A homebrew normally gets 3 cores. Launched from a title whose NPDM allows core 3
 - **Run 112, docked:** heavy frames ~12.5 % faster than run 102 at matched load (90 % interval: +2.8 to +23.1). The nvc0 translation reuse came in at the same time, so the gain is not the core's alone. The likely reason: XMA left core 2, which it shared with Mesa's worker.
 - **What did not work:** moving the GPU walker to core 3. Frames ended later, because core 3 has system threads ahead of it and every IB moved the thread between cores 0 and 3.
 - The emulator has no core 3, so this path can only be tested on the console.
+- **Launched the usual way, core 3 is refused (RTCW).** The process core mask is 0x7, and `threadCreate` with core 3 fails with 0xe201, on the console and in Ryubing alike. Log the mask and a probe's result at start before planning for it; cores 1 and 2 are usually the free ones (guide 11).
 
 ## Shader caches (LEGO)
 

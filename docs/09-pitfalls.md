@@ -46,3 +46,13 @@ Things that cost time. Each has a short fix.
 | Loads slow, the profile full of `unzOpenInternal` (RTCW) | Quake III opens the pk3 again (and searches its directory) for every file a game module opens | `unzReOpen`: copy the open pak's state (guide 12) |
 | A save takes seconds (RTCW) | newlib's small stdio buffer: a write to the card every 1 KB | `setvbuf` 64 KB on written files (guide 12) |
 | A profile names the wrong functions (RTCW) | Named with the ELF of another build | Keep each tested build's ELF beside its logs |
+| Loads ~3 s slower than the reads explain (RTCW) | Before each file in a pk3, the engine asks the card for a loose copy in every folder | Remember folders that do not exist, clear on mkdir (guide 12) |
+| A load fix cuts the emulator's loads by two thirds and the console's not at all (RTCW) | The emulator's file costs are the PC's | Profile loads on the console (guides 05 and 12) |
+| HOME and sleep never show up in a per-frame focus check (RTCW) | The game's threads are stopped while it is in the background | `appletHook` (guide 12) |
+| A thread on core 3 is refused with 0xe201 (RTCW) | The process core mask is 0x7 when launched the usual way | Use cores 1 and 2 (guide 07) |
+| The engine's link cannot find a variable a linked-in module defines (RTCW) | Only the module's entry points stay global | Define shared state in the engine (guide 12) |
+| A multi-map test skips its last maps (RTCW) | The player died, the map reloaded, the next map command was dropped | God mode in long tests (guide 05) |
+| A black-surface "fix" works once and then not (RTCW) | The emulator's fault was bimodal: one clean run proves nothing | Repeat runs; check the same views on the console (guide 05) |
+| A passing emulator run reports a timeout (RTCW) | The runner's time limit was shorter than the game's auto exit | Limit above the auto exit (guide 05) |
+| A PowerShell pipeline exits -1 or 255 for no reason | `Select-Object -First N` stops the command upstream | Filter the output after the command ends |
+| A Makefile edited from PowerShell breaks or shows as all changed | `Set-Content` wrote CRLF line ends | Write with LF (Python, or `[IO.File]::WriteAllText` with `\n`) |

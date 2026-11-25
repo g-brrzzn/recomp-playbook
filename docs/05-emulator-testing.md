@@ -31,6 +31,11 @@ A timed script presses buttons at fixed moments. In RTCW the timed scripts broke
 
 The same script runs in the emulator and on the console, whose loads are two or three times longer.
 
+Long scripted runs (RTCW):
+- **Make the player safe.** A death in the middle of `levels` made the engine reload the map, and the next map command was dropped while it did: the run skipped the last maps. God mode and no-target after each map's start.
+- **Put back what the test changes.** A test that rebinds a control (to check the controls page) ends by binding it back; settings files persist between runs.
+- **The runner's time limit must exceed the game's auto exit**, or a run that passed reports a timeout.
+
 Know what each step waits for. `@waitlevel` waits for the pregame screen; a loaded savegame has none, and loading a save of the map one is on gives no new level at all: the script waited until its time ran out. Load a save with `@waitgame` (its time is the load's), and from another map.
 
 ## The runner (`tools/ryubing_run.py`)
@@ -112,3 +117,16 @@ Every readback of an image of width W (`glReadPixels`) returns only W/4 pixels p
 **Workaround** (`tools/gl_readback_wide.c`): blit the frame into a target four times as wide, read the whole target, and compact the rows. On the console the result is the same as a direct read. Keep it behind a switch (`RECOMP_GL_DUMP_READ=wide` in Manhunt).
 
 With whole frames, the runner keeps each capture's mean luminance to compare across builds (black screen, picture too dark).
+
+## An image fault only the emulator may have (RTCW)
+
+After many map loads, Ryubing drew whole surfaces black (10-85 % of the pixels in some views). Hours went into it; on the console the same views were 0.4-3.6 % black (dark rooms). What worked, and what would have saved time:
+- **Ask the console first.** Put screenshots of the same views in the next console session (the port saves one per state) before any long hunt. One session settled what a day in the emulator could not.
+- **A number, not a look.** A small script gives each capture's share of near-black pixels; compare that across builds.
+- **Repeat every run.** The result was bimodal: the same build gave a clean run and a dark one. A theory "confirmed" by one clean run (draw ranges) was a false lead, reverted.
+- **Bisect builds, not guesses:** old commits built in a `git worktree` and run with the runner's NRO option. Every build back to the first one showed it.
+- **Change the emulator, not the game:** the graphics backend (OpenGL, Vulkan) and the memory mode, then the game's own features (vertex light, fog, clears), and log what the game uploads (texture data was not black). None of them moved it.
+
+## The emulator's file system is not the card's (RTCW)
+
+The emulator reads the PC's disk. A change that cut RTCW's loads in the emulator from 18-30 s to 6-8 s (a larger read buffer, cheap seeks) left the console's unchanged, and what cost on the console (metadata requests for files that do not exist) cost little in the emulator (guide 12). Load times are a console measurement, like frame rate.

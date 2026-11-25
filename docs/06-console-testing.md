@@ -46,6 +46,8 @@ A session that stands still at a fixed scene and changes one thing at a time ans
 - a scripted stretch of play, and the tester's own after it: standing still is lighter than play;
 - the session is checked in the emulator first in its short form (guide 05).
 
+**Script what you need to know; the tester's own steps are a bonus.** In four RTCW sessions in a row the manual part (quick save, docking, HOME, the menus) left little or no trace in the log: steps were skipped, and the log cannot show which menu someone used. What the session must answer goes in the script, with a screenshot per state and the log lines that prove it ran; ask for the screenshots folder by name along with the log.
+
 ## Staging the session (LEGO)
 
 `stage_run.py <label>` (generic version: `tools/stage_console.py`) prepares the card and refuses silly mistakes:
@@ -63,6 +65,6 @@ FPS mixes CPU, GPU and scene. Metrics that helped more:
   - the call chain follows the frame pointers: build your code with `-fno-omit-frame-pointer`, and since code without them (Mesa, libnx) leaves x29 alone, a sample deep in the driver still names the game function that called it. LEGO's stack scan could only say what was *probably* calling;
   - x29 then points at the frame of the last function that has one, so the frame chain alone skips the driver's own calls and the return into that function. Those are in the stack below the last frame record, which is scanned first, each word checked: the BL before it must go into the function of the frame found before it (a BLR is kept once a later checked call leads into it). Unchecked, the scan put old return addresses left in the driver's locals into the chain: cgame's system call dispatcher inside a libnx wait, in most samples of an RTCW profile;
   - a sample at an SVC is a wait, and the report names the game function that waited and the system call it waited in;
-  - each sample carries the frame phase and the A/B label, so one profile covers every state of a session.
+  - each sample carries the frame phase and the A/B label, so one profile covers every state of a session. Loads get a label of their own (RTCW: `LD` from the load's start to its end), and `profile_report.py --label LD` shows only them: that is how the metadata requests of guide 12 were found.
 - **Per-thread CPU in the periodic report** (Manhunt, `[perf]` every 2 s): game, graphics, audio and APU apart. Busy per core and every thread of the process: guide 11.
 - **Wall and CPU time per part of the frame** (RTCW): the difference is waiting (guide 01).
